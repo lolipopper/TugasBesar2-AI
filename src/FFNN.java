@@ -2,6 +2,7 @@ import weka.classifiers.*;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.Utils;
 
 import java.util.Enumeration;
 
@@ -176,6 +177,14 @@ public class FFNN extends AbstractClassifier {
                 inputToHiddenWeight[j][i] += learningRate*errHidden[i]*inputLayer[j];
             }
         }
+    }
+
+    public double[] distributionForInstance(Instance instance) throws Exception {
+        setInputLayer(instance);
+        calculateHiddenLayer();
+        calculateOutputLayer();
+
+        return outputLayer;
     }
 
     public void run() {
