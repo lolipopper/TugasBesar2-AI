@@ -1,7 +1,3 @@
-/**
- * Created by njruntuwene on 11/15/16.
- */
-
 import weka.classifiers.*;
 import weka.core.Attribute;
 import weka.core.Instance;
@@ -76,6 +72,7 @@ public class FFNN extends AbstractClassifier {
         instances = new Instances(data);
         targetValue = new double[numClasses];
         minError = 0.01;
+        learningRate = 0.5;
 
         double curError;
         do {
