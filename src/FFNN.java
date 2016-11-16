@@ -20,13 +20,67 @@ public class FFNN extends AbstractClassifier {
     private double learningRate;
     private double minError;
 
+    public FFNN() {
+
+    }
+
+    public double[] getHiddenLayer() {
+        return hiddenLayer;
+    }
+
+    public double[][] getHiddenToOutputWeight() {
+        return hiddenToOutputWeight;
+    }
+
+    public double[] getInputLayer() {
+        return inputLayer;
+    }
+
+    public double[][] getInputToHiddenWeight() {
+        return inputToHiddenWeight;
+    }
+
+    public Instances getInstances() {
+        return instances;
+    }
+
+    public double getLearningRate() {
+        return learningRate;
+    }
+
+    public double getMinError() {
+        return minError;
+    }
+
+    public int getNumAttributes() {
+        return numAttributes;
+    }
+
+    public int getNumClasses() {
+        return numClasses;
+    }
+
+    public int getNumHiddenNode() {
+        return numHiddenNode;
+    }
+
+    public double[] getOutputLayer() {
+        return outputLayer;
+    }
+
+    public double[] getTargetValue() {
+        return targetValue;
+    }
+
     public void setInputLayer(Instance instance) {
         int attIndex = 0;
         for (Enumeration enu = instance.enumerateAttributes(); enu.hasMoreElements(); attIndex++) {
             Attribute attr = (Attribute) enu.nextElement();
 
-            double val = instance.value(attr);
-            inputLayer[attIndex] = val;
+            if(attr.type() == 0) {
+                double val = instance.value(attr);
+                inputLayer[attIndex] = val;
+            }
         }
     }
 
@@ -122,5 +176,9 @@ public class FFNN extends AbstractClassifier {
                 inputToHiddenWeight[j][i] += learningRate*errHidden[i]*inputLayer[j];
             }
         }
+    }
+
+    public void run() {
+
     }
 }
