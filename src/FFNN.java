@@ -19,9 +19,9 @@ public class FFNN extends AbstractClassifier {
     private Instances instances;
     private int numClasses;
     private int numAttributes;
+    private int numHiddenNode;
     private double[] targetValue;
     private double learningRate;
-    private int numHiddenNode;
     private double minError;
 
     public void setInputLayer(Instance instance) {
@@ -77,7 +77,8 @@ public class FFNN extends AbstractClassifier {
         targetValue = new double[numClasses];
         minError = 0.01;
 
-        while (calculateCumulativeError() > minError) {
+        double curError;
+        do {
             for (int i = 0; i < instances.numInstances(); i++) {
                 Instance curInstance = instances.instance(i);
 
@@ -87,15 +88,22 @@ public class FFNN extends AbstractClassifier {
 
                 backPropagation();
             }
-        }
-    }
 
-    public double calculateCumulativeError() {
-        return 0.0D;
-    }
+            curError = 0.0D;
+            for (int i = 0; i < instances.numInstances(); i++) {
+                Instance curInstance = instances.instance(i);
 
-    public double calculateDataError() {
-        return 0.0D;
+                setInputLayer(curInstance);
+                calculateHiddenLayer();
+                calculateOutputLayer();
+
+                // calculate data error
+                for (int j = 0; j < numClasses; j++) {
+                    curError += (outputLayer[j] - targetValue[j]) * (outputLayer[j] - targetValue[j]);
+                }
+            }
+            curError /= 2.0D;
+        } while (curError > minError);
     }
 
     public void backPropagation() {
