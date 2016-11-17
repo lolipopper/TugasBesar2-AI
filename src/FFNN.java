@@ -137,7 +137,7 @@ public class FFNN extends AbstractClassifier {
 
     public void buildClassifier(Instances data) {
         numClasses = data.numClasses();
-        numAttributes = data.numAttributes() - 1;
+        numAttributes = data.numAttributes();
         numHiddenNode = (numClasses + numAttributes + 1);
         inputLayer = new double[numAttributes];
         hiddenLayer = new double[numHiddenNode];
