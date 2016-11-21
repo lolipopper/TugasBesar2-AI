@@ -223,29 +223,21 @@ public class NaiveBayesX extends AbstractClassifier {
 				probability = probkelas;
 				for (int j=0;j<instanceForTrain.numAttributes()-1;j++) {
 					datax = instanceForTest.instance(i).stringValue(data2.attribute(j));
-					System.out.println("auauaudatax "+datax);
 					for (int k=0;k<instanceForTrain.attribute(j).numValues() && indexattr == -1;k++) {
 						if (datax.equals(instanceForTrain.attribute(j).value(k))) {
 							indexattr = k;
 						}
 					}
-					System.out.println("probin = "+probability);
 					if(indexattr!=-1 && !Double.isNaN(probAttrNonClass[j][indexattr][c])) probability *= probAttrNonClass[j][indexattr][c];
-					System.out.println("probout = "+probability);
 				}
-				System.out.println("probi = "+probability);
-				System.out.println("keluaranu");
 				probs[c] = probability;
-				System.out.println("probol = "+probs[c]);
 			}
 			for (int c=0;c<probs.length;c++) {
-				System.out.println("prob = "+probs[c]);
 				if (maxprob<probs[c]) {
 					maxprob = probs[c];
 					indexclass = c;
 				}
 			}
-			System.out.println("hahah " + indexclass);
 			if (instanceForTest.instance(i).stringValue(instanceForTrain.classAttribute()).equals(instanceForTrain.classAttribute().value(indexclass))) {
 				datatrue++;
 			}
