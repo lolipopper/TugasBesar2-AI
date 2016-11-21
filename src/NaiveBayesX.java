@@ -25,6 +25,11 @@ public class NaiveBayesX extends AbstractClassifier {
 	//indeks 3: banyak jenis value dari atribut kelas
 	public static double[][][] probAttrNonClass;
 	
+	//Hasil confusion matrix
+	//index 1: jumlah data tiap kelas yang akan dites
+	//index 2: hasil tes data.
+	public static int[][] confusionmatrix;
+	
 	public Instances instances;
 	public int numClasses;
 	public int numAttr;
@@ -104,10 +109,10 @@ public class NaiveBayesX extends AbstractClassifier {
 		int countAttrVal = getMaxAttrValCount();
 		
 		probAttrNonClass = new double[countAttrNonClass][countAttrVal][countClassVal];
-		System.out.println("CountClassVal = " + countClassVal);
+/*		System.out.println("CountClassVal = " + countClassVal);
 		System.out.println("CountAttrNonClass = " + countAttrNonClass);
 		System.out.println("CountAttrVal = " + countAttrVal);
-		
+*/		
 		//inisialisasi
 		for (int i=0;i<countAttrNonClass;i++) {
 			for (int j=0;j<countAttrVal;j++) {
@@ -139,6 +144,91 @@ public class NaiveBayesX extends AbstractClassifier {
 		setCondProbPerAttr();
 	}
 	
+	public void printAllprob(Instances data){
+		for (int m=0;m<numAttr-1;m++) {
+			System.out.println("---------------------------------------");
+			System.out.println("Attribute= " + data.attribute(m).name());
+			for (int n=0;n<data.attribute(m).numValues();n++) {
+				for (int p=0;p<data.classAttribute().numValues();p++) {
+					String txt = String.format("%.2f", probAttrNonClass[m][n][p]);
+					System.out.print(txt + " ");
+				}
+				System.out.println();
+			}
+			System.out.println("---------------------------------------");
+		}
+	}
+	
+	public void printconfusionmatrix(){
+		System.out.println("---------------------------------------");
+		System.out.println("CONFUSION MATRIX");
+		for(int i = 0; i < confusionmatrix[0].length; i++){
+			for(int j = 0; j < confusionmatrix[0].length; j++){
+				System.out.print(confusionmatrix[i][j] + " ");
+			}
+			System.out.println();
+		}
+		System.out.println("---------------------------------------");
+	}
+	
+	public void Classify(Instances data){
+		double accuracy = 0;
+		int datatrue = 0;
+		int datafalse = 0;
+		//Initialize Confusion Matrix;
+		confusionmatrix = new int[numClasses][numClasses];
+		for(int a = 0; a < numClasses; a++){
+			for(int b = 0; b < numClasses; b++){
+				confusionmatrix[a][b] = 0;
+			}
+		}
+		
+		for (int i=0;i<data.numInstances();i++) {
+			int indexattr = -1;
+			int indexclass = -1;
+			double[] probs = new double[numClasses];	
+			double maxprob = -1;
+			double probability = -1;
+			String datax = "";
+			for (int c=0;c<data.classAttribute().numValues();c++) {
+				double probkelas = probClass[c];
+				probability = probkelas;
+				for (int j=0;j<data.numAttributes()-1;j++) {
+					datax = data.instance(i).stringValue(data.attribute(j));
+					for (int k=0;k<data.attribute(j).numValues() && indexattr != 0;k++) {
+						if (datax.equals(data.attribute(j).value(k))) {
+							indexattr = k;
+						}
+					}
+					probability *= probAttrNonClass[j][indexattr][c];
+				}
+				probs[c] = probability;
+			}
+			for (int c=0;c<probs.length;c++) {
+				if (maxprob<probs[c]) {
+					maxprob = probs[c];
+					indexclass = c;
+				}
+			}
+			for(int x = 0; x < data.classAttribute().numValues();x++){
+				if(data.classAttribute().value(x) == data.instance(i).stringValue(data.classAttribute())){
+					confusionmatrix[x][indexclass]++;
+				}
+			}
+			if (data.instance(i).stringValue(data.classAttribute()).equals(data.classAttribute().value(indexclass))) {
+				datatrue++;
+			}
+			else datafalse++;
+		}
+		
+		System.out.println("Data yang benar = " + datatrue);
+		System.out.println("Data yang salah = " + datafalse);
+		accuracy = (double)datatrue/((double)datatrue+(double)datafalse);
+		String ACC = String.format("%.2f", accuracy * 100);
+		System.out.println("Akurasi = " + ACC + "%");
+		printconfusionmatrix();
+	}
+	
 	public static void main(String[] args){
 		try {
 			Scanner sc = new Scanner(System.in);
@@ -153,60 +243,12 @@ public class NaiveBayesX extends AbstractClassifier {
 			data1 = new Instances(output);
 			Instances data2 = new Instances(data1);
 			a.buildClassifier(data1);
-			System.out.println("auauau");
-			for (int m=0;m<a.numAttr-1;m++) {
-				System.out.println("---------------------------------------");
-				System.out.println("Attribute= " + data1.attribute(m).name());
-				for (int n=0;n<data1.attribute(m).numValues();n++) {
-					for (int p=0;p<data1.classAttribute().numValues();p++) {
-						String txt = String.format("%.2f", a.probAttrNonClass[m][n][p]);
-						System.out.print(txt + " ");
-					}
-					System.out.println();
-				}
-				System.out.println("---------------------------------------");
-			}
 			
-			double accuracy = 0;
-			int datatrue = 0;
-			int datafalse = 0;
-			for (int i=0;i<data2.numInstances();i++) {
-				int indexattr = -1;
-				int indexclass = -1;
-				double[] probs = new double[a.numClasses];	
-				double maxprob = -1;
-				double probability = -1;
-				String datax = "";
-				for (int c=0;c<data2.classAttribute().numValues();c++) {
-					double probkelas = a.probClass[c];
-					probability += probkelas;
-					for (int j=0;j<data2.numAttributes()-1;j++) {
-						datax = data2.instance(i).stringValue(data2.attribute(j));
-						for (int k=0;k<data2.attribute(j).numValues() && indexattr != 0;k++) {
-							if (datax.equals(data2.attribute(j).value(k))) {
-								indexattr = k;
-							}
-						}
-						probability *= a.probAttrNonClass[j][indexattr][c];
-					}
-					probs[c] = probability;
-				}
-				for (int c=0;c<probs.length;c++) {
-					if (maxprob<probs[c]) {
-						maxprob = probs[c];
-						indexclass = c;
-					}
-				}
-				if (data2.instance(i).stringValue(data2.classAttribute()).equals(data2.classAttribute().value(indexclass))) {
-					datatrue++;
-				}
-				else datafalse++;
-			}
+			//Print all data
+			//a.printAllprob(data1);
 			
-			System.out.println("Data yang benar = " + datatrue);
-			System.out.println("Data yang salah = " + datafalse);
-			accuracy = (double)datatrue/((double)datatrue+(double)datafalse);
-			System.out.println("Akurasi = " + accuracy);
+			//Classify Naive Bayes	
+			a.Classify(data2);
 			
 		} catch (Exception e){
 			System.out.println("An error occured: " + e);
