@@ -10,7 +10,6 @@ public class FFNN extends AbstractClassifier {
     private double[] inputLayer;
     private double[] hiddenLayer;
     private double[] outputLayer;
-//    private int[][] inputToOutputWeight;
     private double[][] inputToHiddenWeight;
     private double[][] hiddenToOutputWeight;
     private Instances instances;
@@ -72,18 +71,27 @@ public class FFNN extends AbstractClassifier {
     }
 
     public void setInputLayer(Instance instance) {
+        double[] temp = new double[instance.numAttributes()];
         int attIndex = 0;
-        for (Enumeration enu = instance.enumerateAttributes(); enu.hasMoreElements(); attIndex++) {
+        Enumeration enu = instance.enumerateAttributes();
+        while (enu.hasMoreElements()) {
             Attribute attr = (Attribute) enu.nextElement();
 
             if(attr.type() == 0) {
                 double val = instance.value(attr);
-                inputLayer[attIndex] = val;
+                temp[attIndex] = val;
+                attIndex++;
             }
         }
+
+        inputLayer = new double[attIndex + 1];
+        for (int i = 0; i < attIndex; i++) {
+            inputLayer[i] = temp[i];
+        }
+        inputLayer[attIndex] = 1.0D;
     }
 
-    public void setTargetLayer(Instance instance) {
+    public void setTargetValue(Instance instance) {
         for (int i = 0; i < targetValue.length; i++) {
             targetValue[i] = 0.0D;
         }
@@ -92,15 +100,15 @@ public class FFNN extends AbstractClassifier {
 
     public void randomizeWeight() {
         Random rand = new Random();
-        for (int i = 0; i < inputLayer.length; i++) {
-            for (int j = 0; j < hiddenLayer.length; j++) {
-                inputToHiddenWeight[i][j] = rand.nextDouble()*2;
+        for (int i = 0; i < inputToHiddenWeight.length; i++) {
+            for (int j = 0; j < inputToHiddenWeight[i].length; j++) {
+                inputToHiddenWeight[i][j] = rand.nextDouble();
             }
         }
 
-        for (int i = 0; i < hiddenLayer.length; i++) {
-            for (int j = 0; j < outputLayer.length; j++) {
-                hiddenToOutputWeight[i][j] = rand.nextDouble()*2;
+        for (int i = 0; i < hiddenToOutputWeight.length; i++) {
+            for (int j = 0; j < hiddenToOutputWeight[i].length; j++) {
+                hiddenToOutputWeight[i][j] = rand.nextDouble();
             }
         }
     }
@@ -117,9 +125,10 @@ public class FFNN extends AbstractClassifier {
             }
         }
 
-        for (int i = 0; i < hiddenLayer.length; i++) {
+        for (int i = 0; i < hiddenLayer.length - 1; i++) {
             hiddenLayer[i] = sigmoid(sumWeight[i]);
         }
+        hiddenLayer[hiddenLayer.length - 1] = 1.0D;
     }
 
     public void calculateOutputLayer() {
@@ -138,15 +147,15 @@ public class FFNN extends AbstractClassifier {
     public void buildClassifier(Instances data) {
         numClasses = data.numClasses();
         numAttributes = data.numAttributes();
-        numHiddenNode = (numClasses + numAttributes + 1);
+        numHiddenNode = (numClasses + numAttributes)/2 + 1;
         inputLayer = new double[numAttributes];
         hiddenLayer = new double[numHiddenNode];
         outputLayer = new double[numClasses];
-        inputToHiddenWeight = new double[numAttributes][numHiddenNode];
+        inputToHiddenWeight = new double[numAttributes][numHiddenNode - 1];
         hiddenToOutputWeight = new double[numHiddenNode][numClasses];
         instances = new Instances(data);
         targetValue = new double[numClasses];
-        minError = 1;
+        minError = 20;
         learningRate = 0.5;
 
         randomizeWeight();
@@ -156,7 +165,7 @@ public class FFNN extends AbstractClassifier {
             for (int i = 0; i < instances.numInstances(); i++) {
                 Instance curInstance = instances.instance(i);
 
-                setTargetLayer(curInstance);
+                setTargetValue(curInstance);
                 setInputLayer(curInstance);
                 calculateHiddenLayer();
                 calculateOutputLayer();
@@ -168,7 +177,7 @@ public class FFNN extends AbstractClassifier {
             for (int i = 0; i < instances.numInstances(); i++) {
                 Instance curInstance = instances.instance(i);
 
-                setTargetLayer(curInstance);
+                setTargetValue(curInstance);
                 setInputLayer(curInstance);
                 calculateHiddenLayer();
                 calculateOutputLayer();
@@ -176,11 +185,9 @@ public class FFNN extends AbstractClassifier {
                 // calculate data error
                 double tempError = 0.0D;
                 for (int j = 0; j < numClasses; j++) {
-//                    System.out.print(targetValue[j] + " ");
                     tempError += (outputLayer[j] - targetValue[j]) * (outputLayer[j] - targetValue[j]);
                 }
                 curError += (tempError / numClasses);
-//                System.out.println(curInstance.value(curInstance.classAttribute()));
             }
             curError /= 2.0D;
         } while (curError > minError);
@@ -189,20 +196,20 @@ public class FFNN extends AbstractClassifier {
     public void backPropagation() {
         double[] errOutput = new double[outputLayer.length];
         double[] errHidden = new double[hiddenLayer.length];
-        for (int i = 0; i < numClasses; i++) {
+        for (int i = 0; i < outputLayer.length; i++) {
             errOutput[i] = outputLayer[i]*(1-outputLayer[i])*(targetValue[i]-outputLayer[i]);
-            for(int j = 0;j < numHiddenNode;j++) {
+            for(int j = 0; j < hiddenLayer.length; j++) {
                 hiddenToOutputWeight[j][i] += learningRate*errOutput[i]*hiddenLayer[j];
             }
         }
 
-        for (int i = 0; i < numHiddenNode; i++) {
+        for (int i = 0; i < hiddenLayer.length - 1; i++) {
             errHidden[i] = 0;
-            for (int j = 0; j < numClasses; j++){
+            for (int j = 0; j < outputLayer.length; j++) {
                 errHidden[i] += (errOutput[j]*hiddenToOutputWeight[i][j]);
             }
             errHidden[i] *= hiddenLayer[i]*(1-hiddenLayer[i]);
-            for(int j = 0; j < numAttributes; j++) {
+            for(int j = 0; j < inputLayer.length; j++) {
                 inputToHiddenWeight[j][i] += learningRate*errHidden[i]*inputLayer[j];
             }
         }
