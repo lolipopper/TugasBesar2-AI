@@ -2,9 +2,14 @@ import weka.classifiers.*;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.Utils;
+import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.Normalize;
 
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Random;
+import java.util.Vector;
 
 public class FFNN extends AbstractClassifier {
     private double[] inputLayer;
@@ -15,10 +20,12 @@ public class FFNN extends AbstractClassifier {
     private Instances instances;
     private int numClasses;
     private int numAttributes;
-    private int numHiddenNode;
+    private int numHiddenNode = 0;
     private double[] targetValue;
     private double learningRate;
     private double minError;
+    private boolean useNormalization = false;
+    private Normalize normalizeFilter;
 
     public FFNN() {}
 
@@ -144,10 +151,40 @@ public class FFNN extends AbstractClassifier {
         }
     }
 
-    public void buildClassifier(Instances data) {
+    public void setNumHiddenNode(int numHiddenNode) {
+        this.numHiddenNode = numHiddenNode;
+    }
+
+    public void setOptions(String[] options) throws Exception {
+        super.setOptions(options);
+        this.useNormalization = Utils.getFlag('N', options);
+        String n = Utils.getOption("-num-hidden-node", options);
+        if (!n.isEmpty()) this.setNumHiddenNode(Integer.parseInt(n));
+        Utils.checkForRemainingOptions(options);
+    }
+
+    public String[] getOptions() {
+        Vector options = new Vector();
+        Collections.addAll(options, super.getOptions());
+        if(this.useNormalization) {
+            options.add("-N");
+        }
+
+        options.add("--num-hidden-node " + numHiddenNode);
+
+        return (String[])options.toArray(new String[0]);
+    }
+
+    public void buildClassifier(Instances data) throws Exception {
+        if (this.useNormalization) {
+            this.normalizeFilter = new Normalize();
+            this.normalizeFilter.setInputFormat(data);
+            data = Filter.useFilter(data,normalizeFilter);
+        }
         numClasses = data.numClasses();
         numAttributes = data.numAttributes();
-        numHiddenNode = (numClasses + numAttributes)/2 + 1;
+        if (numHiddenNode == 0) numHiddenNode = (numClasses + numAttributes)/2 + 1;
+        System.out.println(numHiddenNode);
         inputLayer = new double[numAttributes];
         hiddenLayer = new double[numHiddenNode];
         outputLayer = new double[numClasses];
@@ -155,13 +192,18 @@ public class FFNN extends AbstractClassifier {
         hiddenToOutputWeight = new double[numHiddenNode][numClasses];
         instances = new Instances(data);
         targetValue = new double[numClasses];
-        minError = 1.1;
-        learningRate = 0.5;
+        minError = 1.5;
+        learningRate = 0.3;
 
         randomizeWeight();
 
         double curError;
+        int cnt = 0;
         do {
+            if (cnt > 20000) {
+                randomizeWeight();
+                cnt = 0;
+            }
             for (int i = 0; i < instances.numInstances(); i++) {
                 Instance curInstance = instances.instance(i);
 
@@ -190,7 +232,10 @@ public class FFNN extends AbstractClassifier {
                 curError += (tempError / numClasses);
             }
             curError /= 2.0D;
+//            System.out.println(curError);
+            cnt++;
         } while (curError > minError);
+        System.out.println("LIL");
     }
 
     public void backPropagation() {
@@ -216,10 +261,18 @@ public class FFNN extends AbstractClassifier {
     }
 
     public double[] distributionForInstance(Instance instance) throws Exception {
+        if (this.useNormalization) {
+            this.normalizeFilter.input(instance);
+            instance = this.normalizeFilter.output();
+        }
         setInputLayer(instance);
         calculateHiddenLayer();
         calculateOutputLayer();
 
         return outputLayer;
+    }
+
+    public static void main(String[] argv) {
+        runClassifier(new FFNN(), argv);
     }
 }
