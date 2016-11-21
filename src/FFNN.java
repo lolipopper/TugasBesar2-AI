@@ -120,7 +120,7 @@ public class FFNN extends AbstractClassifier {
     public void calculateHiddenLayer() {
         int[] sumWeight = new int[hiddenLayer.length];
         for (int i = 0; i < inputLayer.length; i++) {
-            for (int j = 0; j < hiddenLayer.length; j++) {
+            for (int j = 0; j < inputToHiddenWeight[i].length; j++) {
                 sumWeight[j] += inputLayer[i] * inputToHiddenWeight[i][j];
             }
         }
@@ -155,7 +155,7 @@ public class FFNN extends AbstractClassifier {
         hiddenToOutputWeight = new double[numHiddenNode][numClasses];
         instances = new Instances(data);
         targetValue = new double[numClasses];
-        minError = 20;
+        minError = 1.1;
         learningRate = 0.5;
 
         randomizeWeight();
