@@ -36,10 +36,6 @@ public class NaiveBayesX extends AbstractClassifier {
 	public int numClasses;
 	public int numAttr;
 	
-	public static double accuracy = 0;
-	public static int datatrue = 0;		
-	public static int datafalse = 0;
-	
 	
 	public Instances getInstances() {
 		return instances;
@@ -58,13 +54,15 @@ public class NaiveBayesX extends AbstractClassifier {
     //get nilai maksimal dari value semua atribut non kelas (untuk keperluan array)
 	public int getMaxAttrValCount() {
 		int n = 0;
-		int countAttrNonClass = instanceForTrain.numAttributes()-1;
+		int countAttrNonClass = instanceForTrain.numAttributes();
 		for (int i=0;i<countAttrNonClass;i++) {
-			int countAttrVal = instanceForTrain.attribute(i).numValues();
-			//System.out.println("AttrName = " + instances.attribute(i).name());
-			//System.out.println("countAttrVal = " + countAttrVal);
-			if(n<countAttrVal) {
-				n = countAttrVal;
+			if (!instanceForTrain.attribute(i).name().equals(instanceForTrain.attribute("class").name())) {
+				int countAttrVal = instanceForTrain.attribute(i).numValues();
+				//System.out.println("AttrName = " + instances.attribute(i).name());
+				//System.out.println("countAttrVal = " + countAttrVal);
+				if(n<countAttrVal) {
+					n = countAttrVal;
+				}
 			}
 		}
 		return n;
@@ -85,7 +83,7 @@ public class NaiveBayesX extends AbstractClassifier {
 	public int countValWithCond(int attr, String val, String clas) {
 		int res = 0;
 		for (int i=0;i<instanceForTrain.numInstances();i++) {
-			if (instanceForTrain.instance(i).stringValue(instanceForTrain.classAttribute()).equals(clas) && instances.instance(i).stringValue(instances.attribute(attr)).equals(val)) {
+			if (instanceForTrain.instance(i).stringValue(instanceForTrain.attribute("class")).equals(clas) && instances.instance(i).stringValue(instances.attribute(attr)).equals(val)) {
 				res++;
 			}
 		}
@@ -95,12 +93,12 @@ public class NaiveBayesX extends AbstractClassifier {
     //set probabilitas kemunculan value atribut kelas per semua instance
     //baru sadar bisa pakai fungsi yang atas
 	public void setProbPerClass() {
-		int countClassVal = instanceForTrain.classAttribute().numValues();
+		int countClassVal = instanceForTrain.attribute("class").numValues();
 		probClass = new double[countClassVal];
 		for (int n=0;n<countClassVal;n++) {
 			int countPerClass = 0;
 			for (int i=0;i<instanceForTrain.numInstances();i++) {
-				if (instanceForTrain.instance(i).stringValue(instanceForTrain.classAttribute()).equals(instances.classAttribute().value(n))) {
+				if (instanceForTrain.instance(i).stringValue(instanceForTrain.attribute("class")).equals(instances.attribute("class").value(n))) {
 					countPerClass++;
 				}
 			}
@@ -111,8 +109,8 @@ public class NaiveBayesX extends AbstractClassifier {
     //BELUM DITES
     //set conditional probability untuk setiap value dari setiap atribut non kelas
 	public void setCondProbPerAttr() {
-		int countClassVal = instanceForTrain.classAttribute().numValues();
-		int countAttrNonClass = instanceForTrain.numAttributes()-1;
+		int countClassVal = instanceForTrain.attribute("class").numValues();
+		int countAttrNonClass = instanceForTrain.numAttributes();
 		int countAttrVal = getMaxAttrValCount();
 		
 		probAttrNonClass = new double[countAttrNonClass][countAttrVal][countClassVal];
@@ -121,21 +119,23 @@ public class NaiveBayesX extends AbstractClassifier {
 		System.out.println("CountAttrVal = " + countAttrVal);
 */		
 		//inisialisasi
-		for (int i=0;i<countAttrNonClass;i++) {
+		/*for (int i=0;i<countAttrNonClass;i++) {
 			for (int j=0;j<countAttrVal;j++) {
 				for (int k=0;k<countClassVal;k++) {
 					probAttrNonClass[i][j][k] = -1; //value that won't be accessed, initiated by -999
 				}
 			}
-		}
+		}*/
 		
 		//belum dites
 		for (int m=0;m<countAttrNonClass;m++) {
-			for (int n=0;n<instanceForTrain.attribute(m).numValues();n++) {
-				for (int p=0;p<countClassVal;p++) {
-					int a = countValAppears(m,instanceForTrain.attribute(m).value(n));
-					int b = countValWithCond(m,instanceForTrain.attribute(m).value(n),instanceForTrain.classAttribute().value(p));
-					probAttrNonClass[m][n][p] = (double)b/(double)a;
+			if (!instanceForTrain.attribute(m).name().equals(instanceForTrain.attribute("class").name())) {
+				for (int n=0;n<instanceForTrain.attribute(m).numValues();n++) {
+					for (int p=0;p<countClassVal;p++) {
+						int a = countValAppears(m,instanceForTrain.attribute(m).value(n));
+						int b = countValWithCond(m,instanceForTrain.attribute(m).value(n),instanceForTrain.attribute("class").value(p));
+						probAttrNonClass[m][n][p] = (double)b/(double)a;
+					}
 				}
 			}
 		}
@@ -150,8 +150,8 @@ public class NaiveBayesX extends AbstractClassifier {
 		return output;
 	}
 	
-	public void fullTraining(Instances data2) {
-		instanceForTrain = new Instances(data2);
+	public void fullTraining(Instances data, Instances data2) {
+		instanceForTrain = new Instances(data);
 		instanceForTest = new Instances(data2);
 		setProbPerClass();
 		setCondProbPerAttr();
@@ -163,7 +163,7 @@ public class NaiveBayesX extends AbstractClassifier {
 			double maxprob = -1;
 			double probability;
 			String datax;
-			for (int c=0;c<instanceForTrain.classAttribute().numValues();c++) {
+			for (int c=0;c<instanceForTrain.attribute("class").numValues();c++) {
 				double probkelas = probClass[c];
 				probability = probkelas;
 				for (int j=0;j<instanceForTrain.numAttributes()-1;j++) {
@@ -183,7 +183,7 @@ public class NaiveBayesX extends AbstractClassifier {
 					indexclass = c;
 				}
 			}
-			if (instanceForTest.instance(i).stringValue(instanceForTest.classAttribute()).equals(instanceForTest.classAttribute().value(indexclass))) {
+			if (instanceForTest.instance(i).stringValue(instanceForTest.attribute("class")).equals(instanceForTest.attribute("class").value(indexclass))) {
 				datatrue++;
 			}
 			else datafalse++;
@@ -212,7 +212,7 @@ public class NaiveBayesX extends AbstractClassifier {
 			double maxprob = -1;
 			double probability;
 			String datax;
-			for (int c=0;c<instanceForTrain.classAttribute().numValues();c++) {
+			for (int c=0;c<instanceForTrain.attribute("class").numValues();c++) {
 				double probkelas = probClass[c];
 				probability = probkelas;
 				for (int j=0;j<instanceForTrain.numAttributes()-1;j++) {
@@ -232,7 +232,7 @@ public class NaiveBayesX extends AbstractClassifier {
 					indexclass = c;
 				}
 			}
-			if (instanceForTest.instance(i).stringValue(instanceForTrain.classAttribute()).equals(instanceForTrain.classAttribute().value(indexclass))) {
+			if (instanceForTest.instance(i).stringValue(instanceForTrain.attribute("class")).equals(instanceForTrain.attribute("class").value(indexclass))) {
 				datatrue++;
 			}
 			else datafalse++;
@@ -246,20 +246,22 @@ public class NaiveBayesX extends AbstractClassifier {
 	@Override
 	public void buildClassifier(Instances data) {
 		instances = new Instances(data);
-		numClasses = data.numClasses();
+		numClasses = data.attribute("class").numValues();
 		numAttr = data.numAttributes();
 	}
 	
 	public void printNaiveBayes() {
-		for (int m=0;m<numAttr-1;m++) {
-			System.out.println("---------------------------------------");
-			System.out.println("Attribute= " + instanceForTrain.attribute(m).name());
-			for (int n=0;n<instanceForTrain.attribute(m).numValues();n++) {
-				for (int p=0;p<instanceForTrain.classAttribute().numValues();p++) {
-					String txt = String.format("%.2f", probAttrNonClass[m][n][p]);
-					System.out.print(txt + " ");
+		for (int m=0;m<numAttr;m++) {
+			if (!instanceForTrain.attribute(m).name().equals(instanceForTrain.attribute("class").name())) {
+				System.out.println("---------------------------------------");
+				System.out.println("Attribute= " + instanceForTrain.attribute(m).name());
+				for (int n=0;n<instanceForTrain.attribute(m).numValues();n++) {
+					for (int p=0;p<instanceForTrain.attribute("class").numValues();p++) {
+						String txt = String.format("%.2f", probAttrNonClass[m][n][p]);
+						System.out.print(txt + " ");
+					}
+					System.out.println();
 				}
-				System.out.println();
 			}
 			System.out.println("---------------------------------------");
 		}
@@ -297,17 +299,19 @@ public class NaiveBayesX extends AbstractClassifier {
 			double maxprob = -1;
 			double probability = -1;
 			String datax = "";
-			for (int c=0;c<instanceForTrain.classAttribute().numValues();c++) {
+			for (int c=0;c<instanceForTrain.attribute("class").numValues();c++) {
 				double probkelas = probClass[c];
 				probability = probkelas;
-				for (int j=0;j<instanceForTrain.numAttributes()-1;j++) {
-					datax = instanceForTest.instance(i).stringValue(instanceForTest.attribute(j));
-					for (int k=0;k<instanceForTrain.attribute(j).numValues() && indexattr != 0;k++) {
-						if (datax.equals(instanceForTrain.attribute(j).value(k))) {
-							indexattr = k;
+				for (int j=0;j<instanceForTrain.numAttributes();j++) {
+					if (!instanceForTrain.attribute(j).name().equals(instanceForTrain.attribute("class").name())) {
+						datax = instanceForTest.instance(i).stringValue(instanceForTest.attribute(j));
+						for (int k=0;k<instanceForTrain.attribute(j).numValues() && indexattr != 0;k++) {
+							if (datax.equals(instanceForTrain.attribute(j).value(k))) {
+								indexattr = k;
+							}
 						}
+						if(indexattr!=-1 && !Double.isNaN(probAttrNonClass[j][indexattr][c])) probability *= probAttrNonClass[j][indexattr][c];
 					}
-					if(indexattr!=-1 && !Double.isNaN(probAttrNonClass[j][indexattr][c])) probability *= probAttrNonClass[j][indexattr][c];
 				}
 				probs[c] = probability;
 			}
@@ -317,12 +321,12 @@ public class NaiveBayesX extends AbstractClassifier {
 					indexclass = c;
 				}
 			}
-			for(int x = 0; x < instanceForTest.classAttribute().numValues();x++){
-				if(instanceForTest.classAttribute().value(x) == instanceForTest.instance(i).stringValue(instanceForTest.classAttribute())){
+			for(int x = 0; x < instanceForTest.attribute("class").numValues();x++){
+				if(instanceForTest.attribute("class").value(x) == instanceForTest.instance(i).stringValue(instanceForTest.attribute("class"))){
 					confusionmatrix[x][indexclass]++;
 				}
 			}
-			if (instanceForTest.instance(i).stringValue(instanceForTest.classAttribute()).equals(instanceForTest.classAttribute().value(indexclass))) {
+			if (instanceForTest.instance(i).stringValue(instanceForTest.attribute("class")).equals(instanceForTest.attribute("class").value(indexclass))) {
 				datatrue++;
 			}
 			else datafalse++;
@@ -339,14 +343,17 @@ public class NaiveBayesX extends AbstractClassifier {
 	public static void main(String[] args){
 		try {
 			Scanner sc = new Scanner(System.in);
-			System.out.print("Masukkan nama file: ");
+			System.out.print("Masukkan nama file training: ");
 			String namafile = sc.nextLine();
-			Instances data1 = DataSource.read("D:/Program Files/Weka-3-8/data/" + namafile);
+			//Instances data1 = DataSource.read("C:/Program Files/Weka-3-8/data/" + namafile);
+			Instances data1 = DataSource.read("D:/" + namafile);
 			data1.setClassIndex(data1.numAttributes()-1);
 			NaiveBayesX a = new NaiveBayesX();
 			Instances output = a.numericToNominal(data1);
 			data1 = new Instances(output);
-			Instances data2 = new Instances(data1);
+			System.out.print("Masukkan nama file testing: ");
+			namafile = sc.nextLine();
+			Instances data2 = DataSource.read("D:/" + namafile);
 			a.buildClassifier(data1);
 						
 			//pilih algoritma testing
@@ -357,7 +364,7 @@ public class NaiveBayesX extends AbstractClassifier {
 			System.out.print("Pilihan = ");
 			int z = sc.nextInt();
 			if(z == 1){
-				a.fullTraining(data2);
+				a.fullTraining(data1, data2);
 			} else if (z == 2){
 				System.out.print("Masukkan Persentase dalam %: ");
 				int y = sc.nextInt();
