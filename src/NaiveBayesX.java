@@ -134,6 +134,7 @@ public class NaiveBayesX extends AbstractClassifier {
 					for (int p=0;p<countClassVal;p++) {
 						int a = countValAppears(m,instanceForTrain.attribute(m).value(n));
 						int b = countValWithCond(m,instanceForTrain.attribute(m).value(n),instanceForTrain.attribute("class").value(p));
+
 						probAttrNonClass[m][n][p] = (double)b/(double)a;
 					}
 				}
@@ -262,8 +263,8 @@ public class NaiveBayesX extends AbstractClassifier {
 					}
 					System.out.println();
 				}
+				System.out.println("---------------------------------------");
 			}
-			System.out.println("---------------------------------------");
 		}
 	}
 	
