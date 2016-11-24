@@ -4,7 +4,9 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
 import weka.filters.Filter;
+import weka.filters.supervised.attribute.NominalToBinary;
 import weka.filters.unsupervised.attribute.Normalize;
+import weka.filters.unsupervised.attribute.Remove;
 
 import java.util.Collections;
 import java.util.Enumeration;
@@ -25,7 +27,9 @@ public class FFNN extends AbstractClassifier {
     private double learningRate;
     private double minError;
     private boolean useNormalization = false;
+    private boolean useHiddenLayer = true;
     private Normalize normalizeFilter;
+    private Remove rm;
 
     public FFNN() {}
 
@@ -125,6 +129,11 @@ public class FFNN extends AbstractClassifier {
     }
 
     public void calculateHiddenLayer() {
+        if (!useHiddenLayer) {
+            System.arraycopy(inputLayer,0,hiddenLayer,0,inputLayer.length);
+            return;
+        }
+
         int[] sumWeight = new int[hiddenLayer.length];
         for (int i = 0; i < inputLayer.length; i++) {
             for (int j = 0; j < inputToHiddenWeight[i].length; j++) {
@@ -158,7 +167,8 @@ public class FFNN extends AbstractClassifier {
     public void setOptions(String[] options) throws Exception {
         super.setOptions(options);
         this.useNormalization = Utils.getFlag('N', options);
-        String n = Utils.getOption("-num-hidden-node", options);
+        this.useHiddenLayer = !Utils.getFlag("no-hidden-layer",options);
+        String n = Utils.getOption("num-hidden-node", options);
         if (!n.isEmpty()) this.setNumHiddenNode(Integer.parseInt(n));
         Utils.checkForRemainingOptions(options);
     }
@@ -170,7 +180,7 @@ public class FFNN extends AbstractClassifier {
             options.add("-N");
         }
 
-        options.add("--num-hidden-node " + numHiddenNode);
+        options.add("-num-hidden-node " + numHiddenNode);
 
         return (String[])options.toArray(new String[0]);
     }
@@ -181,9 +191,17 @@ public class FFNN extends AbstractClassifier {
             this.normalizeFilter.setInputFormat(data);
             data = Filter.useFilter(data,normalizeFilter);
         }
+        // for student only
+        rm = new Remove();
+        rm.setAttributeIndices("28");
+        rm.setInputFormat(data);
+        data = Filter.useFilter(data,rm);
+        Filter numericFilter = new NominalToBinary();
+        numericFilter.setInputFormat(data);
+        data = Filter.useFilter(data,numericFilter);
         numClasses = data.numClasses();
         numAttributes = data.numAttributes();
-        if (numHiddenNode == 0) numHiddenNode = (numClasses + numAttributes)/2 + 1;
+        if (numHiddenNode == 0) numHiddenNode = numAttributes;
         System.out.println(numHiddenNode);
         inputLayer = new double[numAttributes];
         hiddenLayer = new double[numHiddenNode];
@@ -192,7 +210,7 @@ public class FFNN extends AbstractClassifier {
         hiddenToOutputWeight = new double[numHiddenNode][numClasses];
         instances = new Instances(data);
         targetValue = new double[numClasses];
-        minError = 1.5;
+        minError = 20;
         learningRate = 0.3;
 
         randomizeWeight();
@@ -200,7 +218,7 @@ public class FFNN extends AbstractClassifier {
         double curError;
         int cnt = 0;
         do {
-            if (cnt > 20000) {
+            if (cnt > 50000) {
                 randomizeWeight();
                 cnt = 0;
             }
@@ -218,6 +236,7 @@ public class FFNN extends AbstractClassifier {
             curError = 0.0D;
             for (int i = 0; i < instances.numInstances(); i++) {
                 Instance curInstance = instances.instance(i);
+
 
                 setTargetValue(curInstance);
                 setInputLayer(curInstance);
@@ -272,7 +291,7 @@ public class FFNN extends AbstractClassifier {
         return outputLayer;
     }
 
-    public static void main(String[] argv) {
+    public static void main(String[] argv) throws Exception {
         runClassifier(new FFNN(), argv);
     }
 }
